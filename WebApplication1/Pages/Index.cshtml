@@ -1,0 +1,76 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+
+<script src="js/signalr/dist/browser/signalr.js"></script>
+
+<div id="entrance">
+    <label for="nick">Enter your nickname:</label>
+    <input type="text" id="nick"/>
+    <button onclick="connectToGame()">Connect to game room</button>
+</div>
+
+
+<div id="answers" style="display: none">
+    <h3 id="spn-nick"></h3>
+    <form id="frm-send-answer" action="#">
+        <label for="answer">Answer:</label>
+        <input type="text" id="answer"/>
+        <input type="submit" id="send" value="Send" class="send"/>
+    </form>
+    <div class="clear">
+    </div>
+</div>
+
+<div id="questions" style="display: none">
+    <h5 id="question">Waiting for other players to start game...</h5>
+</div>
+
+<div id="winner-block" style="display: none">
+    <h5 id="winner-name"></h5>
+</div>
+
+<script>
+    const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/quiz")
+            .build();
+     
+    connection.start().catch(err => console.error(err.toString()));
+     
+    connection.on('GetQuestion', questionText => {
+         $('#question').text(questionText);
+         $('#answers').show();
+    });
+          
+    connection.on('GetWinner', winnerName => {
+        $('#winner-name').text("Winner is: " + winnerName);
+        $('#winner-block').show();
+        $('#answers').hide();
+        $('#questions').hide();
+    });
+     
+    document.getElementById('frm-send-answer').addEventListener('submit', event => {
+        let answer = $('#answer').val();
+        let nick = $('#spn-nick').text();
+     
+        $('#answer').val('');
+     
+        $('#question').text("Waiting answers from other players...");
+        $('#answers').hide();
+     
+        connection.invoke('GetAnswer', nick, answer);
+        event.preventDefault();
+    });
+     
+    function connectToGame() {
+        $('#spn-nick').text($('#nick').val());
+        $('#entrance').hide();
+        $('#answers').show();
+        $('#questions').show();
+        let nick = $('#spn-nick').text();
+        connection.invoke('Connect', nick);
+    }
+ 
+</script>
